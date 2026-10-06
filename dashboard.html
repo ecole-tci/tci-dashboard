@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eric's Dashboard — TCI Activity</title>
+<style>
+  /* ── Tokens ── */
+  :root {
+    --bg:        #0f1117;
+    --surface:   #171b25;
+    --surface2:  #1e2330;
+    --border:    #272d3d;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --accent:    #3b82f6;
+    --green:     #22c55e;
+    --amber:     #f59e0b;
+    --red:       #ef4444;
+    --purple:    #a78bfa;
+    --font:      'Inter', system-ui, sans-serif;
+    --mono:      'JetBrains Mono', 'Fira Mono', monospace;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-badge {
+    width: 40px; height: 40px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px; color: #fff; letter-spacing: -0.5px;
+  }
+  .site-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .site-sub   { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+  }
+  .status-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  #statusText { font-size: 12px; color: var(--muted); }
+  .btn-refresh {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-refresh:hover { background: var(--border); }
+
+  /* ── Date nav ── */
+  .date-nav {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 24px;
+  }
+  .date-nav button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+  }
+  .date-nav button:hover { background: var(--border); }
+  .date-nav button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  #dateLabel { font-size: 15px; font-weight: 600; color: var(--text); }
+
+  /* ── Metric row ── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .metric-value { font-size: 28px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+  .metric-sub   { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .metric-value.green  { color: var(--green); }
+  .metric-value.amber  { color: var(--amber); }
+  .metric-value.accent { color: var(--accent); }
+
+  /* ── Main grid ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Timeline ── */
+  #timeline { display: flex; flex-direction: column; gap: 2px; }
+  .tl-row {
+    display: grid;
+    grid-template-columns: 50px 90px 1fr 90px;
+    gap: 8px;
+    align-items: center;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .tl-row:hover { background: var(--surface2); }
+  .tl-time  { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+  .tl-dur   { color: var(--muted); font-size: 11px; text-align: right; }
+  .tl-prog  { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl-cat   {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    white-space: nowrap; text-align: center; font-weight: 500;
+  }
+
+  /* ── Category colors ── */
+  .cat-Modeling   { background: rgba(59,130,246,.15); color: #93c5fd; }
+  .cat-Comm       { background: rgba(167,139,250,.15); color: #c4b5fd; }
+  .cat-Office     { background: rgba(34,197,94,.15);  color: #86efac; }
+  .cat-AI         { background: rgba(245,158,11,.15); color: #fcd34d; }
+  .cat-WorkWeb    { background: rgba(20,184,166,.15); color: #5eead4; }
+  .cat-Personal   { background: rgba(239,68,68,.15);  color: #fca5a5; }
+  .cat-Dev        { background: rgba(139,92,246,.15); color: #c4b5fd; }
+  .cat-System     { background: rgba(100,116,139,.15);color: #94a3b8; }
+  .cat-Idle       { background: rgba(100,116,139,.1); color: #64748b; }
+  .cat-Other      { background: rgba(100,116,139,.1); color: #64748b; }
+
+  /* ── Category breakdown ── */
+  .cat-list { display: flex; flex-direction: column; gap: 10px; }
+  .cat-item { }
+  .cat-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .cat-name  { font-size: 12px; font-weight: 500; }
+  .cat-time  { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cat-bar-bg {
+    height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
+  }
+  .cat-bar-fill { height: 100%; border-radius: 2px; transition: width .4s ease; }
+
+  /* ── Week chart ── */
+  .week-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 80px;
+    margin-bottom: 8px;
+  }
+  .week-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .week-bar-wrap { width: 100%; flex: 1; display: flex; align-items: flex-end; }
+  .week-bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    background: var(--accent);
+    opacity: 0.7;
+    min-height: 2px;
+    transition: height .4s ease;
+  }
+  .week-bar.today { opacity: 1; background: var(--accent); }
+  .week-label { font-size: 10px; color: var(--muted); }
+  .week-hours { font-size: 9px; color: var(--muted); }
+
+  /* ── Projects ── */
+  .proj-list { display: flex; flex-direction: column; gap: 8px; }
+  .proj-row  {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .proj-name  { font-weight: 500; }
+  .proj-time  { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ── Timesheet helper ── */
+  .ts-entry {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .ts-entry-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .ts-job   { font-weight: 600; font-size: 13px; }
+  .ts-hours {
+    font-size: 20px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .ts-meta  { color: var(--muted); font-size: 11px; }
+  .ts-empty {
+    text-align: center; color: var(--muted); padding: 24px;
+    font-size: 12px; font-style: italic;
+  }
+
+  /* ── Error / offline ── */
+  .offline-banner {
+    background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.3);
+    color: #fca5a5;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    display: none;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 800px) {
+    .metrics { grid-template-columns: repeat(2,1fr); }
+    .main-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 500px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .tl-row  { grid-template-columns: 50px 1fr 80px; }
+    .tl-dur  { display: none; }
+  }
+
+  /* ── Manual entry form ── */
+  .manual-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 100px 100px;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .manual-form label {
+    font-size: 11px; color: var(--muted);
+    display: block; margin-bottom: 4px;
+  }
+  .manual-form input, .manual-form select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: var(--font);
+  }
+  .manual-form input:focus, .manual-form select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .time-inputs {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 6px;
+    align-items: center;
+  }
+  .time-sep { color: var(--muted); font-size: 12px; text-align: center; }
+  .btn-add {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-add:hover { background: #2563eb; }
+  .btn-clear-all {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+  }
+  .btn-clear-all:hover { border-color: var(--red); color: var(--red); }
+  .manual-tag {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    background: rgba(59,130,246,.15); color: #93c5fd;
+    font-weight: 500;
+  }
+  .auto-tag {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    background: rgba(34,197,94,.15); color: #86efac;
+    font-weight: 500;
+  }
+  .btn-delete-entry {
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 14px; padding: 0 4px;
+    line-height: 1;
+  }
+  .btn-delete-entry:hover { color: var(--red); }
+  @media (max-width: 700px) {
+    .manual-form { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <div class="logo-badge">TCI</div>
+      <div>
+        <div class="site-title">Activity Dashboard</div>
+        <div class="site-sub">Eric Cole &mdash; Thieneman Construction</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Connecting&hellip;</span>
+      <button class="btn-refresh" onclick="load()">Refresh</button>
+    </div>
+  </header>
+
+  <!-- Offline banner -->
+  <div class="offline-banner" id="offlineBanner">
+    ⚠ Tracker not running &mdash; start <code>activity_tracker.py</code> on your PC to see live data.
+    <br><small style="opacity:.7">Make sure it's running: <code>pythonw activity_tracker.py</code> in your Startup folder.</small>
+  </div>
+
+  <!-- Date nav -->
+  <div class="date-nav">
+    <button onclick="shiftDay(-1)">← Prev</button>
+    <button onclick="goToday()" id="btnToday">Today</button>
+    <button onclick="shiftDay(1)">Next →</button>
+    <span id="dateLabel"></span>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Work Time</div>
+      <div class="metric-value green" id="mWork">—</div>
+      <div class="metric-sub" id="mWorkSub">today</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Active Time</div>
+      <div class="metric-value accent" id="mActive">—</div>
+      <div class="metric-sub" id="mActiveSub">excl. idle</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Personal</div>
+      <div class="metric-value amber" id="mPersonal">—</div>
+      <div class="metric-sub">browsing etc.</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Projects</div>
+      <div class="metric-value" id="mProjects">—</div>
+      <div class="metric-sub">tracked today</div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- Left: Timeline -->
+    <div class="card">
+      <div class="card-title">Timeline</div>
+      <div id="timeline"><div style="color:var(--muted);font-size:12px">Loading&hellip;</div></div>
+    </div>
+
+    <!-- Right column -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- Week chart -->
+      <div class="card">
+        <div class="card-title">This week</div>
+        <div class="week-chart" id="weekChart"></div>
+        <div style="display:flex;gap:6px" id="weekLabels"></div>
+      </div>
+
+      <!-- Category breakdown -->
+      <div class="card">
+        <div class="card-title">By category</div>
+        <div class="cat-list" id="catList"></div>
+      </div>
+
+      <!-- Projects -->
+      <div class="card">
+        <div class="card-title">By project</div>
+        <div class="proj-list" id="projList"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Timesheet helper -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="card-title" style="margin-bottom:0">Timesheet entries</div>
+      <button class="btn-clear-all" onclick="clearManualEntries()">Clear manual</button>
+    </div>
+
+    <!-- Manual entry form -->
+    <div class="manual-form" id="manualForm">
+      <div>
+        <label>Project / Job</label>
+        <input type="text" id="meJob" placeholder="e.g. Bremen WWTP" list="jobSuggestions">
+        <datalist id="jobSuggestions"></datalist>
+      </div>
+      <div>
+        <label>Time — hours <span style="color:var(--muted)">or</span> start &amp; end</label>
+        <div style="display:grid;grid-template-columns:80px auto 80px auto 80px;gap:6px;align-items:center">
+          <input type="number" id="meHours" placeholder="e.g. 2.5" min="0" max="24" step="0.25">
+          <span style="color:var(--muted);font-size:11px;text-align:center">or</span>
+          <input type="time" id="meStart">
+          <span style="color:var(--muted);font-size:11px;text-align:center">to</span>
+          <input type="time" id="meEnd">
+        </div>
+      </div>
+      <div>
+        <label>Description (optional)</label>
+        <input type="text" id="meDesc" placeholder="What did you work on?">
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <button class="btn-add" onclick="addManualEntry()">+ Add</button>
+      </div>
+    </div>
+
+    <div id="timesheetList"></div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+const API = 'http://localhost:9147';
+let currentDate = new Date();
+currentDate.setHours(0,0,0,0);
+
+function isoDate(d) {
+  return d.toISOString().slice(0,10);
+}
+
+function fmtHours(sec) {
+  const h = sec / 3600;
+  if (h < 0.1) return '0h';
+  if (h < 1)   return Math.round(h * 60) + 'm';
+  return h.toFixed(1).replace(/\.0$/,'') + 'h';
+}
+
+function fmtHHMM(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  return `${h}:${String(m).padStart(2,'0')}`;
+}
+
+function timeStr(iso) {
+  return iso.slice(11,16);
+}
+
+function catClass(cat) {
+  const map = {
+    'Modeling & Drawings': 'cat-Modeling',
+    'Communication':       'cat-Comm',
+    'Office Docs':         'cat-Office',
+    'AI Assistant':        'cat-AI',
+    'Work Web':            'cat-WorkWeb',
+    'Personal Web':        'cat-Personal',
+    'Dev & Tools':         'cat-Dev',
+    'System':              'cat-System',
+    'Idle':                'cat-Idle',
+  };
+  return map[cat] || 'cat-Other';
+}
+
+function catColor(cat) {
+  const map = {
+    'Modeling & Drawings': '#3b82f6',
+    'Communication':       '#a78bfa',
+    'Office Docs':         '#22c55e',
+    'AI Assistant':        '#f59e0b',
+    'Work Web':            '#14b8a6',
+    'Personal Web':        '#ef4444',
+    'Dev & Tools':         '#8b5cf6',
+    'System':              '#475569',
+    'Idle':                '#334155',
+  };
+  return map[cat] || '#475569';
+}
+
+function renderTimeline(rows) {
+  const el = document.getElementById('timeline');
+  if (!rows || !rows.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0">No activity logged for this day.</div>';
+    return;
+  }
+
+  // Collapse consecutive same-category runs > 30s, skip tiny idle blips
+  const MIN_SHOW = 30;
+  const collapsed = [];
+  for (const r of rows) {
+    if (r.duration < MIN_SHOW && r.category === 'Idle') continue;
+    if (r.duration < 10) continue;
+    const last = collapsed[collapsed.length - 1];
+    if (last && last.category === r.category && last.program === r.program) {
+      last.end = r.end;
+      last.duration += r.duration;
+    } else {
+      collapsed.push({...r});
+    }
+  }
+
+  el.innerHTML = collapsed.map(r => {
+    const dur = r.duration >= 3600
+      ? `${Math.floor(r.duration/3600)}h ${Math.floor((r.duration%3600)/60)}m`
+      : r.duration >= 60
+        ? `${Math.floor(r.duration/60)}m`
+        : `${r.duration}s`;
+    const prog = r.title && r.title !== r.program
+      ? r.title.slice(0,60)
+      : r.program.replace('.exe','');
+    return `<div class="tl-row">
+      <span class="tl-time">${timeStr(r.start)}</span>
+      <span class="tl-cat ${catClass(r.category)}">${r.category.replace('& ','&amp; ')}</span>
+      <span class="tl-prog" title="${r.title}">${prog}</span>
+      <span class="tl-dur">${dur}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderCategories(cats, activeSec) {
+  const el = document.getElementById('catList');
+  const skip = new Set(['Idle','System']);
+  const items = Object.entries(cats)
+    .filter(([k]) => !skip.has(k) && cats[k] > 30)
+    .sort((a,b) => b[1]-a[1]);
+  if (!items.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">No data.</div>'; return; }
+  el.innerHTML = items.map(([name, sec]) => {
+    const pct = activeSec ? Math.round(100*sec/activeSec) : 0;
+    const color = catColor(name);
+    return `<div class="cat-item">
+      <div class="cat-header">
+        <span class="cat-name">${name}</span>
+        <span class="cat-time">${fmtHHMM(sec)}</span>
+      </div>
+      <div class="cat-bar-bg">
+        <div class="cat-bar-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderProjects(projects) {
+  const el = document.getElementById('projList');
+  const items = Object.entries(projects).sort((a,b)=>b[1]-a[1]);
+  if (!items.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px">No projects detected today.</div>';
+    return;
+  }
+  el.innerHTML = items.map(([name, sec]) => `
+    <div class="proj-row">
+      <span class="proj-name">${name}</span>
+      <span class="proj-time">${fmtHHMM(sec)}</span>
+    </div>`).join('');
+}
+
+function renderWeek(week) {
+  const chartEl  = document.getElementById('weekChart');
+  const labelEl  = document.getElementById('weekLabels');
+  if (!week || !week.length) return;
+  const maxSec = Math.max(...week.map(d=>d.work_seconds), 3600);
+  const today  = isoDate(new Date());
+  const days   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  chartEl.innerHTML = week.map(d => {
+    const pct   = Math.round(100 * d.work_seconds / maxSec);
+    const isToday = d.date === today;
+    const dow   = new Date(d.date + 'T12:00').getDay();
+    return `<div class="week-col">
+      <div class="week-bar-wrap">
+        <div class="week-bar${isToday?' today':''}" style="height:${Math.max(pct,2)}%"
+          title="${fmtHHMM(d.work_seconds)} work — ${d.date}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  labelEl.innerHTML = week.map(d => {
+    const dow = new Date(d.date + 'T12:00').getDay();
+    const isToday = d.date === today;
+    return `<span style="flex:1;text-align:center;font-size:10px;color:${isToday?'var(--accent)':'var(--muted)'}">${days[dow]}</span>`;
+  }).join('');
+}
+
+// ── Manual entries (localStorage) ────────────────────────────────────────
+const ME_KEY = 'tci_manual_entries';
+
+function manualKey(dateStr) { return ME_KEY + '_' + dateStr; }
+
+function getManualEntries() {
+  const d = isoDate(currentDate);
+  try { return JSON.parse(localStorage.getItem(manualKey(d)) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveManualEntries(entries) {
+  localStorage.setItem(manualKey(isoDate(currentDate)), JSON.stringify(entries));
+}
+
+function addManualEntry() {
+  const job   = document.getElementById('meJob').value.trim();
+  const hours = parseFloat(document.getElementById('meHours').value);
+  const start = document.getElementById('meStart').value;
+  const end   = document.getElementById('meEnd').value;
+  const desc  = document.getElementById('meDesc').value.trim();
+
+  if (!job) { document.getElementById('meJob').focus(); return; }
+
+  let h = null;
+  if (!isNaN(hours) && hours > 0) {
+    h = hours;
+  } else if (start && end) {
+    const [sh,sm] = start.split(':').map(Number);
+    const [eh,em] = end.split(':').map(Number);
+    const mins = (eh*60+em) - (sh*60+sm);
+    if (mins <= 0) { alert('End time must be after start time.'); return; }
+    h = +(mins/60).toFixed(2);
+  } else {
+    document.getElementById('meHours').focus();
+    return;
+  }
+
+  const entries = getManualEntries();
+  entries.push({
+    id:    Date.now(),
+    job,
+    hours: h,
+    start: start || null,
+    end:   end   || null,
+    desc,
+    date:  isoDate(currentDate),
+  });
+  saveManualEntries(entries);
+
+  // Clear form
+  document.getElementById('meJob').value   = '';
+  document.getElementById('meHours').value = '';
+  document.getElementById('meStart').value = '';
+  document.getElementById('meEnd').value   = '';
+  document.getElementById('meDesc').value  = '';
+
+  renderTimesheet(window._lastProjects || {}, window._lastCats || {});
+}
+
+function deleteManualEntry(id) {
+  const entries = getManualEntries().filter(e => e.id !== id);
+  saveManualEntries(entries);
+  renderTimesheet(window._lastProjects || {}, window._lastCats || {});
+}
+
+function clearManualEntries() {
+  if (!confirm('Clear all manual entries for this day?')) return;
+  localStorage.removeItem(manualKey(isoDate(currentDate)));
+  renderTimesheet(window._lastProjects || {}, window._lastCats || {});
+}
+
+function renderTimesheet(projects, cats) {
+  window._lastProjects = projects;
+  window._lastCats     = cats;
+  const el = document.getElementById('timesheetList');
+  const WORK_CATS = new Set(['Modeling & Drawings','Communication','Office Docs','AI Assistant','Work Web','Dev & Tools']);
+
+  // Auto entries from tracker
+  const autoEntries = [];
+  const projTotal = Object.values(projects).reduce((a,b)=>a+b, 0);
+  const workTotal = Object.entries(cats).filter(([k])=>WORK_CATS.has(k)).reduce((a,[,v])=>a+v,0);
+  for (const [name, sec] of Object.entries(projects).sort((a,b)=>b[1]-a[1])) {
+    autoEntries.push({ job: name, hours: +(sec/3600).toFixed(2), note: 'Detected from activity log', auto: true });
+  }
+  const unattributed = workTotal - projTotal;
+  if (unattributed > 300) {
+    autoEntries.push({ job: 'OH - Overhead / General', hours: +(unattributed/3600).toFixed(2), note: 'Work time with no project detected', auto: true });
+  }
+
+  // Manual entries
+  const manualEntries = getManualEntries();
+
+  // Populate job suggestions datalist
+  const allJobs = [...new Set([
+    ...autoEntries.map(e=>e.job),
+    ...manualEntries.map(e=>e.job),
+    'Bremen WWTP','Noblesville','Logansport','Bloomington',
+    'Carmel Storage Tank','New Palestine','Whitestown',
+    'Ft. Wayne RNG','Gate 114A','OH - Overhead',
+  ])];
+  document.getElementById('jobSuggestions').innerHTML =
+    allJobs.map(j=>`<option value="${j}">`).join('');
+
+  if (!autoEntries.length && !manualEntries.length) {
+    el.innerHTML = '<div class="ts-empty">No entries yet — the tracker will auto-detect projects, or add one manually above.</div>';
+    return;
+  }
+
+  const autoHtml = autoEntries.map(e => `
+    <div class="ts-entry">
+      <div class="ts-entry-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ts-job">${e.job}</span>
+          <span class="auto-tag">auto</span>
+        </div>
+        <span class="ts-hours">${e.hours.toFixed(1)}h</span>
+      </div>
+      <div class="ts-meta">${e.note} &mdash; Cost Code: 31 - Engineering &mdash; Trade: VDE</div>
+    </div>`).join('');
+
+  const manualHtml = manualEntries.map(e => {
+    const timeNote = e.start && e.end ? `${e.start} – ${e.end}` : '';
+    const descNote = e.desc ? e.desc : 'Manual entry';
+    const meta = [descNote, timeNote].filter(Boolean).join(' &mdash; ');
+    return `
+    <div class="ts-entry">
+      <div class="ts-entry-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ts-job">${e.job}</span>
+          <span class="manual-tag">manual</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="ts-hours">${e.hours.toFixed(1)}h</span>
+          <button class="btn-delete-entry" onclick="deleteManualEntry(${e.id})" title="Remove">×</button>
+        </div>
+      </div>
+      <div class="ts-meta">${meta} &mdash; Cost Code: 31 - Engineering &mdash; Trade: VDE</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = autoHtml + (manualHtml ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+manualHtml+'</div>' : '');
+}
+
+function updateDateLabel() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isToday = currentDate.getTime() === today.getTime();
+  const label = isToday ? 'Today — ' : '';
+  const opts = { weekday:'long', month:'long', day:'numeric', year:'numeric' };
+  document.getElementById('dateLabel').textContent = label + currentDate.toLocaleDateString('en-US', opts);
+  document.getElementById('btnToday').classList.toggle('active', isToday);
+}
+
+async function load() {
+  updateDateLabel();
+  const dateStr = isoDate(currentDate);
+  const dot  = document.getElementById('statusDot');
+  const txt  = document.getElementById('statusText');
+  const banner = document.getElementById('offlineBanner');
+
+  try {
+    const res  = await fetch(`${API}/data/${dateStr}`, { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+
+    dot.className = 'status-dot live';
+    txt.textContent = 'Live — updated ' + data.generated_at.slice(11,16);
+    banner.style.display = 'none';
+
+    // Metrics
+    document.getElementById('mWork').textContent     = fmtHHMM(data.work_seconds);
+    document.getElementById('mActive').textContent   = fmtHHMM(data.active_seconds);
+    document.getElementById('mPersonal').textContent = fmtHHMM(data.personal_seconds);
+    document.getElementById('mProjects').textContent = Object.keys(data.projects).length;
+
+    renderTimeline(data.timeline);
+    renderCategories(data.categories, data.active_seconds);
+    renderProjects(data.projects);
+    renderWeek(data.week);
+    renderTimesheet(data.projects, data.categories);
+
+  } catch (e) {
+    dot.className = 'status-dot';
+    txt.textContent = 'Tracker offline';
+    banner.style.display = 'block';
+    document.getElementById('mWork').textContent     = '—';
+    document.getElementById('mActive').textContent   = '—';
+    document.getElementById('mPersonal').textContent = '—';
+    document.getElementById('mProjects').textContent = '—';
+    document.getElementById('timeline').innerHTML    =
+      '<div style="color:var(--muted);font-size:12px">Tracker not running.</div>';
+    document.getElementById('catList').innerHTML     = '';
+    document.getElementById('projList').innerHTML    = '';
+    document.getElementById('timesheetList').innerHTML =
+      '<div class="ts-empty">Start activity_tracker.py to see suggestions.</div>';
+  }
+}
+
+function shiftDay(n) {
+  currentDate.setDate(currentDate.getDate() + n);
+  load();
+}
+function goToday() {
+  currentDate = new Date(); currentDate.setHours(0,0,0,0);
+  load();
+}
+
+// Auto-refresh every 5 minutes while tab is visible
+setInterval(() => { if (!document.hidden) load(); }, 300000);
+
+load();
+</script>
+</body>
+</html>
